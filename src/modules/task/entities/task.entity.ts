@@ -6,26 +6,21 @@ import {
   JoinColumn,
   ManyToOne,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
 
 @Entity()
 export class Task {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ApiProperty()
   @Column({ nullable: true })
   title!: string;
 
-  @ApiProperty()
   @Column({ nullable: true })
   description!: string;
 
-  @ApiProperty()
   @Column({ nullable: true })
   date!: string;
 
-  @ApiProperty()
   @Column({ nullable: true })
   time!: string;
 
@@ -34,5 +29,5 @@ export class Task {
   user!: User;
 
   @Column()
-  userId!: number;
+  userId?: number;
 }
