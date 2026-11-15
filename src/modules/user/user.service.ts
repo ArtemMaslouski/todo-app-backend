@@ -61,4 +61,14 @@ export class UserService {
 
     return this.userRepository.save(updatedUser);
   }
+
+  async update(id: number, updatedData: Partial<User>) {
+    await this.userRepository.update(id, updatedData);
+
+    return this.findOneById(id);
+  }
+
+  async findOneById(id: number) {
+    return this.userRepository.findOne({ where: { id } });
+  }
 }

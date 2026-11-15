@@ -28,4 +28,7 @@ export class User {
   @Column('simple-array', { nullable: true })
   @OneToMany(() => Task, (task) => task.user)
   tasks?: Task[];
+
+  @Column({ nullable: true })
+  hashedRefreshToken!: string | null;
 }

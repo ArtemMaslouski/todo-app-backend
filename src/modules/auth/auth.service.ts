@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -7,30 +8,63 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dto/login.dto';
-import { User } from '../user/user.entity';
 import { RegisterDTO } from './dto/register.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
-  generateToken(user: User) {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
 
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-    };
+  async generateTokens(userId: number, email: string, role?: string) {
+    const payload = { sub: userId, email, role };
+
+    const [access_token, refresh_token] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: '15m',
+      }),
+
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: '7d',
+      }),
+    ]);
+
+    return { access_token, refresh_token };
+  }
+
+  async refreshToken(userId: number, refreshToken: string) {
+    const user = await this.userService.findOneById(userId);
+
+    if (!user || !refreshToken || !user.hashedRefreshToken) {
+      throw new ForbiddenException('Доступ запрещен');
+    }
+
+    const refreshTokenMatches = await bcrypt.compare(
+      refreshToken,
+      user.hashedRefreshToken,
+    );
+
+    if (!refreshTokenMatches) {
+      throw new ForbiddenException('Доступ запрещен');
+    }
+
+    const tokens = await this.generateTokens(user.id!, user.email, user.role);
+    await this.updateRefreshToken(user.id!, tokens.refresh_token);
+
+    return tokens;
+  }
+
+  async updateRefreshToken(userId: number, refreshToken: string | null) {
+    const hashedRefreshToken = refreshToken
+      ? await bcrypt.hash(refreshToken, 10)
+      : null;
+
+    return await this.userService.update(userId, { hashedRefreshToken });
   }
 
   async login(loginDTO: LoginDTO) {
@@ -49,7 +83,13 @@ export class AuthService {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
-    return this.generateToken(user);
+    const tokens = await this.generateTokens(user.id!, user.email, user.role);
+    await this.updateRefreshToken(user.id!, tokens.refresh_token);
+
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
   }
 
   async register(registerDTO: RegisterDTO) {
@@ -67,6 +107,16 @@ export class AuthService {
       password: hash,
     });
 
-    return this.generateToken(user);
+    const tokens = await this.generateTokens(user.id!, user.email, user.role);
+    await this.updateRefreshToken(user.id!, tokens.refresh_token);
+
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
+  }
+
+  async logout(userId: number) {
+    return await this.updateRefreshToken(userId, null);
   }
 }
