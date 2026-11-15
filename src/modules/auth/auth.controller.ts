@@ -5,12 +5,14 @@ import {
   Body,
   UseGuards,
   Request,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDTO } from './dto/register.dto';
 import { LoginDTO } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 
 @ApiTags('Авторизация/Аутентификация')
 @Controller('auth')
@@ -27,6 +29,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Войти в систему' })
   async loginUser(@Body() loginDTO: LoginDTO) {
     return this.authService.login(loginDTO);
+  }
+
+  @UseGuards(JwtRefreshGuard)
+  @Post('refresh')
+  async refreshTokens(@Req() req) {
+    return this.authService.refreshToken(req.user.sub, req.user.refreshToken);
+  }
+
+  @UseGuards(JwtRefreshGuard)
+  @Post('logout')
+  async logout(@Req() req) {
+    this.authService.logout(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
