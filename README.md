@@ -43,3 +43,8 @@ REST API для управления задачами (To-Do list), разраб
 5. Для запуска базы данных запустите:
 
    docker-compose up -d
+
+## 🔗 Live Demo
+
+Вы можете протестировать API вживую (Swagger UI):
+https://todo-app-backend-c82a.onrender.com/api
