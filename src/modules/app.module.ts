@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { TaskModule } from 'src/modules/task/task.module';
 import { AuthModule } from './auth/auth.module';
+import { TelegramModule } from './telegram/telegram.module';
 //import databaseConfig from 'src/config/database.config';
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuthModule } from './auth/auth.module';
     UserModule,
     TaskModule,
     AuthModule,
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [AppService],
