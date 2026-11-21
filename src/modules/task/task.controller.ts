@@ -31,11 +31,17 @@ export class TaskController {
     return this.taskService.findAll(req.user.id);
   }
 
+  @Delete('deleteTask/:id')
+  @ApiOperation({ summary: 'Удалить задачу' })
+  deleteTask(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.taskService.deleteTask(id, req.user.userId);
+  }
   @Post('createTask')
   @ApiOperation({ summary: 'Создать задачу' })
   async createTask(@Body() createTask: CreateTaskDTO, @Request() req) {
     return this.taskService.createTask(createTask, req.user.userId);
   }
+
   @Put('replaceTask/:id')
   @ApiOperation({ summary: 'Полностью изменить задачу по ее id' })
   async replaceTask(
