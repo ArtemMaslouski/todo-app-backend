@@ -13,13 +13,13 @@ export class UpdateTaskDTO {
   description!: string;
 
   @IsString()
-  @ApiProperty({ description: 'Вероятная дата события', example: '' })
+  @ApiProperty({ description: 'Вероятная дата события', example: '2026-12-12' })
   date!: string;
 
   @IsString()
   @ApiProperty({
     description: 'Формат времени YYYY-MM-DD',
-    example: '2026-12-12',
+    example: '12:12:12',
   })
   time!: string;
 }

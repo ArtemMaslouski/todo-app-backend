@@ -31,4 +31,7 @@ export class User {
 
   @Column({ nullable: true })
   hashedRefreshToken!: string | null;
+
+  @Column({ nullable: true })
+  telegramChatId?: string;
 }
