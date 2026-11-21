@@ -10,7 +10,7 @@ import {
 @Entity()
 export class Task {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id?: number;
 
   @Column({ nullable: true })
   title!: string;
@@ -28,6 +28,6 @@ export class Task {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column()
-  userId?: number;
+  @Column({ name: 'user_id' })
+  userId!: number;
 }

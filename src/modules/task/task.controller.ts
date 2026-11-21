@@ -9,6 +9,7 @@ import {
   Patch,
   Request,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { ReplaceTaskDTO } from './dto/replace-task.dto';
@@ -33,9 +34,8 @@ export class TaskController {
   @Post('createTask')
   @ApiOperation({ summary: 'Создать задачу' })
   async createTask(@Body() createTask: CreateTaskDTO, @Request() req) {
-    return this.taskService.createTask(createTask, req.user.id);
+    return this.taskService.createTask(createTask, req.user.userId);
   }
-
   @Put('replaceTask/:id')
   @ApiOperation({ summary: 'Полностью изменить задачу по ее id' })
   async replaceTask(
@@ -43,7 +43,7 @@ export class TaskController {
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
   ) {
-    return this.taskService.replaceTask(id, req.user.id, task);
+    return this.taskService.replaceTask(id, req.user.userId, task);
   }
 
   @Patch('updateTask/:id')
@@ -53,6 +53,6 @@ export class TaskController {
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
   ) {
-    return this.taskService.updateTask(id, req.user.id, task);
+    return this.taskService.updateTask(id, req.user.userId, task);
   }
 }
