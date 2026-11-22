@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Telegraf } from 'telegraf';
+import { Telegraf, Context } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { TaskService } from '../task/task.service';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private bot: Telegraf;
+  private readonly logger = new Logger(TelegramService.name);
   constructor(
     private configService: ConfigService,
     private userService: UserService,
@@ -19,34 +20,58 @@ export class TelegramService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    this.bot.start((ctx) => {
-      ctx.reply(
-        'Привет! Я твой Todo-бот.\n\nЧтобы я мог показать твои задачи, войди в аккаунт командой:\n/login твой_email твой_пароль\n\nПример: /login test@mail.com 123456',
-      );
-    });
+    this.bot.start((ctx) => this.handleStart(ctx));
+    this.bot.command('tasks', (ctx) => this.handleGetTasks(ctx));
+    this.bot.command('login', (ctx) => this.handleLogin(ctx));
+    this.bot.launch();
+    console.log('Telegram bot started');
+  }
 
-    this.bot.command('tasks', async (ctx) => {
-      try {
-        const chatId = ctx.chat.id.toString();
+  private async handleStart(ctx) {
+    return ctx.reply(
+      'Привет! Я твой Todo-бот.\n\n' +
+        'Доступные команды:\n' +
+        '/login email пароль - Войти\n' +
+        '/tasks - Мои задачи\n' +
+        '/create - Создать задачу',
+    );
+  }
 
-        const user = await this.userService.findByTelegramChatId(chatId);
+  private async handleGetTasks(ctx) {
+    try {
+      const chatId = ctx.chat.id.toString();
+      if (!chatId) return;
 
-        const tasks = await this.taskService.getTaskByUserId(user?.id);
-
-        tasks.map((task) => {
-          ctx.reply(
-            `<b>Задача:</b>${task.title}\n<b>Описание задачи:</b>${task.description}\n<b>Дата:</b>${task.date}\n<b>Время исполнения:${task.time}</b>`,
-            {
-              parse_mode: 'HTML',
-            },
-          );
-        });
-      } catch {
-        throw new Error();
+      const user = await this.userService.findByTelegramChatId(chatId);
+      if (!user) {
+        return ctx.reply(
+          'Вы не авторизованы. Напишите /login ваш_email ваш_пароль',
+        );
       }
-    });
 
-    this.bot.command('login', async (ctx) => {
+      const tasks = await this.taskService.getTaskByUserId(user.id!);
+      if (!tasks || tasks.length === 0) {
+        return ctx.reply('У вас пока нет задач. Создайте первую: /create');
+      }
+
+      const taskList = tasks
+        .map(
+          (task, i) =>
+            `<b>${i + 1}. ${task.title}</b>\n` +
+            `📝 ${task.description || 'Без описания'}\n` +
+            `📅 ${task.date || 'Без даты'} ⏰ ${task.time || 'Без времени'}`,
+        )
+        .join('\n➖➖➖➖➖➖➖➖\n');
+      return ctx.reply(`📋 <b>Ваши задачи:</b>\n\n${taskList}`, {
+        parse_mode: 'HTML',
+      });
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  private async handleLogin(ctx) {
+    try {
       const message = ctx.message.text.replace('/login', '').trim();
       const [email, password] = message.split(/\s+/);
 
@@ -74,8 +99,9 @@ export class TelegramService implements OnModuleInit {
         `✅Успешный вход! Привет, ${user.name}.\nТеперь напиши /tasks, чтобы посмотреть задачи.`,
         { parse_mode: 'HTML' },
       );
-    });
-    this.bot.launch();
-    console.log('Telegram bot started');
+    } catch (error) {
+      this.logger.error('Ошибка в handleLogin', error);
+      ctx.reply('При входе произошла ошибка');
+    }
   }
 }
