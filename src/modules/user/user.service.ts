@@ -73,6 +73,8 @@ export class UserService {
   }
 
   async findByTelegramChatId(chatId: string) {
-    return this.userRepository.findOne({ where: { telegramChatId: chatId } });
+    return await this.userRepository.findOne({
+      where: { telegramChatId: chatId },
+    });
   }
 }

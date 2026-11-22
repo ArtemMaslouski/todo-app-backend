@@ -25,7 +25,6 @@ export class User {
   @Column({ default: 'user' })
   role?: string;
 
-  @Column('simple-array', { nullable: true })
   @OneToMany(() => Task, (task) => task.user)
   tasks?: Task[];
 

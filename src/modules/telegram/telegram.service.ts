@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
+import { TaskService } from '../task/task.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class TelegramService implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private userService: UserService,
+    private taskService: TaskService,
   ) {
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) throw new Error('TELEGRAM_BOT_TOKEN не найден');
@@ -24,12 +26,24 @@ export class TelegramService implements OnModuleInit {
     });
 
     this.bot.command('tasks', async (ctx) => {
-      const user = await this.userService.findByEmail('masloartem20@gmail.com');
-      if (!user) throw new Error('Пользоватиель не найден');
+      try {
+        const chatId = ctx.chat.id.toString();
 
-      ctx.reply(
-        `Привет, ${user.name}! У тебя пока нет задач (или они есть, но я их не вижу).`,
-      );
+        const user = await this.userService.findByTelegramChatId(chatId);
+
+        const tasks = await this.taskService.getTaskByUserId(user?.id);
+
+        tasks.map((task) => {
+          ctx.reply(
+            `<b>Задача:</b>${task.title}\n<b>Описание задачи:</b>${task.description}\n<b>Дата:</b>${task.date}\n<b>Время исполнения:${task.time}</b>`,
+            {
+              parse_mode: 'HTML',
+            },
+          );
+        });
+      } catch {
+        throw new Error();
+      }
     });
 
     this.bot.command('login', async (ctx) => {
@@ -57,7 +71,8 @@ export class TelegramService implements OnModuleInit {
       });
 
       return ctx.reply(
-        `✅ Успешный вход! Привет, ${user.name}.\nТеперь напиши /tasks, чтобы посмотреть задачи.`,
+        `✅Успешный вход! Привет, ${user.name}.\nТеперь напиши /tasks, чтобы посмотреть задачи.`,
+        { parse_mode: 'HTML' },
       );
     });
     this.bot.launch();
