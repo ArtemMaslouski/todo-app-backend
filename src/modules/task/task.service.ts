@@ -12,7 +12,7 @@ export class TaskService {
     @InjectRepository(Task) private taskRepository: Repository<Task>,
   ) {}
 
-  findAll(userId: number): Promise<Task[]> {
+  async findAll(userId: number): Promise<Task[]> {
     return this.taskRepository.find({ where: { userId } });
   }
 
@@ -26,6 +26,10 @@ export class TaskService {
     if (result.affected === 0) {
       throw new NotFoundException('Задача не найден');
     }
+  }
+
+  async getTaskByUserId(userId: number) {
+    return this.taskRepository.find({ where: { userId } });
   }
 
   async replaceTask(

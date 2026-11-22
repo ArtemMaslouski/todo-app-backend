@@ -25,10 +25,12 @@ export class User {
   @Column({ default: 'user' })
   role?: string;
 
-  @Column('simple-array', { nullable: true })
   @OneToMany(() => Task, (task) => task.user)
   tasks?: Task[];
 
   @Column({ nullable: true })
   hashedRefreshToken!: string | null;
+
+  @Column({ nullable: true })
+  telegramChatId?: string;
 }
